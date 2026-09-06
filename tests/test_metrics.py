@@ -38,6 +38,30 @@ def test_sharpe_is_zero_without_variation():
     assert metrics.sharpe([0.01, 0.01, 0.01]) == 0.0
 
 
+def test_max_drawdown_is_the_worst_peak_to_trough():
+    # 100 -> 120 -> 90 -> 130: worst drop is 120 -> 90 = -25%
+    assert metrics.max_drawdown([100, 120, 90, 130]) == pytest.approx(-0.25)
+
+
+def test_max_drawdown_of_a_monotonic_curve_is_zero():
+    assert metrics.max_drawdown([100, 101, 102, 103]) == 0.0
+
+
+def test_sortino_ignores_upside_volatility():
+    # all-positive returns => no downside => zero by convention
+    assert metrics.sortino([0.01, 0.02, 0.015]) == 0.0
+    mixed = metrics.sortino([0.02, -0.01, 0.03, -0.005] * 20)
+    assert mixed != 0.0
+
+
+def test_calmar_is_cagr_over_max_drawdown():
+    equity = [100.0] * 253
+    equity[100] = 80.0  # a 20% drawdown partway through
+    equity[-1] = 110.0
+    expected = metrics.cagr(equity) / 0.2
+    assert metrics.calmar(equity) == pytest.approx(expected)
+
+
 @pytest.mark.parametrize(
     "step, expected",
     [

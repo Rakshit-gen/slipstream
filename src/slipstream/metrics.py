@@ -55,6 +55,45 @@ def sharpe(
     return fmean(excess) / spread * math.sqrt(periods_per_year)
 
 
+def drawdown_series(equity: list[float]) -> list[float]:
+    """Fractional distance below the running peak at each point, <= 0."""
+    out: list[float] = []
+    peak = equity[0] if equity else 0.0
+    for value in equity:
+        peak = max(peak, value)
+        out.append(value / peak - 1.0 if peak else 0.0)
+    return out
+
+
+def max_drawdown(equity: list[float]) -> float:
+    """The worst peak-to-trough drop, as a negative fraction."""
+    return min(drawdown_series(equity), default=0.0)
+
+
+def sortino(
+    rets: list[float],
+    risk_free: float = 0.0,
+    periods_per_year: float = TRADING_DAYS,
+    target: float = 0.0,
+) -> float:
+    if len(rets) < 2:
+        return 0.0
+    per_period_rf = risk_free / periods_per_year
+    excess = [r - per_period_rf for r in rets]
+    downside = [min(0.0, e - target) for e in excess]
+    downside_dev = math.sqrt(fmean(d * d for d in downside))
+    if downside_dev == 0:
+        return 0.0
+    return fmean(excess) / downside_dev * math.sqrt(periods_per_year)
+
+
+def calmar(equity: list[float], periods_per_year: float = TRADING_DAYS) -> float:
+    worst = abs(max_drawdown(equity))
+    if worst == 0:
+        return 0.0
+    return cagr(equity, periods_per_year) / worst
+
+
 def infer_periods_per_year(timestamps: list[datetime]) -> float:
     """Guess the annualisation factor from the spacing between timestamps:
     daily bars → 252, weekly → 52, monthly → 12, otherwise scale a calendar

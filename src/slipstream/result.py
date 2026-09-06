@@ -49,6 +49,17 @@ class BacktestResult:
     def sharpe(self, risk_free: float = 0.0) -> float:
         return metrics.sharpe(self.returns, risk_free, self.periods_per_year)
 
+    def sortino(self, risk_free: float = 0.0) -> float:
+        return metrics.sortino(self.returns, risk_free, self.periods_per_year)
+
+    @property
+    def max_drawdown(self) -> float:
+        return metrics.max_drawdown(self.equity)
+
+    @property
+    def calmar(self) -> float:
+        return metrics.calmar(self.equity, self.periods_per_year)
+
     def summary(self) -> dict[str, float]:
         return {
             "start_equity": self.equity[0] if self.equity else self.starting_cash,
@@ -57,5 +68,8 @@ class BacktestResult:
             "cagr": self.cagr,
             "volatility": self.volatility,
             "sharpe": self.sharpe(),
+            "sortino": self.sortino(),
+            "max_drawdown": self.max_drawdown,
+            "calmar": self.calmar,
             "trades": len(self.fills),
         }
