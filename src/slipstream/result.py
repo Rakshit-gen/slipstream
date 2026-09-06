@@ -15,6 +15,7 @@ class BacktestResult:
     equity_curve: list[tuple[datetime, float]]
     fills: list[Fill]
     starting_cash: float
+    exposure_curve: list[tuple[datetime, float]] = field(default_factory=list)
     unfilled_orders: list[Order] = field(default_factory=list)
     periods_per_year: float | None = None
 
@@ -60,6 +61,11 @@ class BacktestResult:
     def calmar(self) -> float:
         return metrics.calmar(self.equity, self.periods_per_year)
 
+    @property
+    def avg_exposure(self) -> float:
+        values = [value for _, value in self.exposure_curve]
+        return sum(values) / len(values) if values else 0.0
+
     def summary(self) -> dict[str, float]:
         return {
             "start_equity": self.equity[0] if self.equity else self.starting_cash,
@@ -71,5 +77,6 @@ class BacktestResult:
             "sortino": self.sortino(),
             "max_drawdown": self.max_drawdown,
             "calmar": self.calmar,
+            "avg_exposure": self.avg_exposure,
             "trades": len(self.fills),
         }

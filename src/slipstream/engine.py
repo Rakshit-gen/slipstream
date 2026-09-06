@@ -43,6 +43,7 @@ class Engine:
         self.broker = Broker(commission, slippage)
         self.context = Context(self.portfolio, self.broker)
         self.equity_curve: list[tuple[datetime, float]] = []
+        self.exposure_curve: list[tuple[datetime, float]] = []
         self.fills: list[Fill] = []
 
     def run(self) -> BacktestResult:
@@ -60,10 +61,12 @@ class Engine:
 
             self.strategy.on_bar(ctx)
             self.equity_curve.append((when, self.portfolio.equity(ctx.prices)))
+            self.exposure_curve.append((when, self.portfolio.gross_exposure(ctx.prices)))
 
         self.strategy.finish(ctx)
         return BacktestResult(
             equity_curve=self.equity_curve,
+            exposure_curve=self.exposure_curve,
             fills=self.fills,
             starting_cash=self.starting_cash,
             unfilled_orders=self.broker.pending,
