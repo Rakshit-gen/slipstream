@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from . import metrics
+from .trades import Trade, extract_trades, trade_stats
 from .types import Fill, Order
 
 
@@ -62,6 +63,13 @@ class BacktestResult:
         return metrics.calmar(self.equity, self.periods_per_year)
 
     @property
+    def trades(self) -> list[Trade]:
+        return extract_trades(self.fills)
+
+    def trade_stats(self) -> dict[str, float]:
+        return trade_stats(self.trades)
+
+    @property
     def avg_exposure(self) -> float:
         values = [value for _, value in self.exposure_curve]
         return sum(values) / len(values) if values else 0.0
@@ -79,4 +87,6 @@ class BacktestResult:
             "calmar": self.calmar,
             "avg_exposure": self.avg_exposure,
             "trades": len(self.fills),
+            "round_trips": len(self.trades),
+            "win_rate": self.trade_stats()["win_rate"],
         }
