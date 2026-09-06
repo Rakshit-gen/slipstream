@@ -24,6 +24,8 @@ class Side(str, Enum):
 
 class OrderType(str, Enum):
     MARKET = "market"
+    LIMIT = "limit"
+    STOP = "stop"
 
 
 @dataclass(frozen=True)
@@ -54,12 +56,18 @@ class Order:
     symbol: str
     quantity: float
     type: OrderType = OrderType.MARKET
+    price: float | None = None  # limit price for LIMIT, trigger level for STOP
     created_at: datetime | None = None
     id: int = 0
 
     def __post_init__(self) -> None:
         if self.quantity == 0:
             raise ValueError("order quantity must be non-zero")
+        needs_price = self.type in (OrderType.LIMIT, OrderType.STOP)
+        if needs_price and self.price is None:
+            raise ValueError(f"{self.type.value} order needs a price")
+        if not needs_price and self.price is not None:
+            raise ValueError("market order takes no price")
 
     @property
     def side(self) -> Side:

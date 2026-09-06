@@ -13,7 +13,7 @@ from datetime import datetime
 
 from .broker import Broker
 from .portfolio import Portfolio
-from .types import Bar, Order
+from .types import Bar, Order, OrderType
 
 
 class Context:
@@ -41,6 +41,27 @@ class Context:
         if quantity == 0:
             return None
         return self._broker.submit(Order(symbol, quantity, created_at=self.now))
+
+    def limit_order(self, symbol: str, quantity: float, price: float) -> Order | None:
+        """Buy/sell *quantity* shares only at *price* or better."""
+        quantity = math.trunc(quantity)
+        if quantity == 0:
+            return None
+        return self._broker.submit(
+            Order(symbol, quantity, OrderType.LIMIT, price, created_at=self.now)
+        )
+
+    def stop_order(self, symbol: str, quantity: float, price: float) -> Order | None:
+        """A market order that arms once *price* trades through."""
+        quantity = math.trunc(quantity)
+        if quantity == 0:
+            return None
+        return self._broker.submit(
+            Order(symbol, quantity, OrderType.STOP, price, created_at=self.now)
+        )
+
+    def cancel(self, order: Order) -> bool:
+        return self._broker.cancel(order.id)
 
     def order_target(self, symbol: str, target_quantity: float) -> Order | None:
         """Trade to leave the position at *target_quantity* shares."""
