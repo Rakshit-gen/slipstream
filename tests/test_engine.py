@@ -1,3 +1,5 @@
+import pytest
+
 from slipstream.engine import Engine
 from slipstream.feed import BarFeed
 from slipstream.strategies import BuyAndHold
@@ -40,10 +42,22 @@ def test_buy_and_hold_tracks_the_underlying():
 
 def test_orders_fill_on_the_next_bar_not_the_current_one():
     feed = BarFeed({"AAPL": bars([10, 20, 40])})
-    result = Engine(feed, BuyOnce("AAPL", 100), starting_cash=10_000).run()
+    engine = Engine(feed, BuyOnce("AAPL", 100), starting_cash=10_000, close_at_end=False)
+    result = engine.run()
     assert len(result.fills) == 1
     # order placed looking at bar 0 (close 10), filled at bar 1 open (== 10)
     assert result.fills[0].price == 10
+
+
+def test_close_at_end_flattens_the_book_so_trades_reconcile():
+    feed = BarFeed({"AAPL": bars([10, 20, 40])})
+    result = Engine(feed, BuyOnce("AAPL", 100), starting_cash=10_000).run()
+    assert len(result.fills) == 2  # the buy, plus a synthetic close
+    assert result.fills[-1].commission == 0.0
+    # one closed round trip, and its PnL matches what equity did
+    assert len(result.trades) == 1
+    realized = sum(t.pnl for t in result.trades)
+    assert result.equity[-1] - result.starting_cash == pytest.approx(realized)
 
 
 def test_an_order_on_the_final_bar_never_fills():
