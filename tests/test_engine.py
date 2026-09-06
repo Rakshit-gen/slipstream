@@ -24,31 +24,26 @@ class BuyOnce(Strategy):
 
 def test_a_do_nothing_strategy_keeps_equity_flat():
     feed = BarFeed({"AAPL": bars([10, 11, 12, 13])})
-    engine = Engine(feed, DoNothing(), starting_cash=10_000)
-    curve = engine.run()
-    assert len(curve) == 4
-    assert [round(v, 6) for _, v in curve] == [10_000] * 4
+    result = Engine(feed, DoNothing(), starting_cash=10_000).run()
+    assert len(result.equity_curve) == 4
+    assert [round(v, 6) for v in result.equity] == [10_000] * 4
 
 
 def test_buy_and_hold_tracks_the_underlying():
-    prices = [100, 110, 120, 130]
-    feed = BarFeed({"AAPL": bars(prices)})
-    engine = Engine(feed, BuyAndHold(), starting_cash=10_000)
-    curve = engine.run()
+    feed = BarFeed({"AAPL": bars([100, 110, 120, 130])})
+    result = Engine(feed, BuyAndHold(), starting_cash=10_000).run()
     # bought ~100 shares at bar 2's open (== bar 1 close of 100); by the end
     # the position is worth roughly 100 * 130 with the rest in cash.
-    final = curve[-1][1]
-    assert final > 12_000
-    assert engine.fills  # something actually traded
+    assert result.equity[-1] > 12_000
+    assert result.fills  # something actually traded
 
 
 def test_orders_fill_on_the_next_bar_not_the_current_one():
     feed = BarFeed({"AAPL": bars([10, 20, 40])})
-    engine = Engine(feed, BuyOnce("AAPL", 100), starting_cash=10_000)
-    engine.run()
-    assert len(engine.fills) == 1
+    result = Engine(feed, BuyOnce("AAPL", 100), starting_cash=10_000).run()
+    assert len(result.fills) == 1
     # order placed looking at bar 0 (close 10), filled at bar 1 open (== 10)
-    assert engine.fills[0].price == 10
+    assert result.fills[0].price == 10
 
 
 def test_an_order_on_the_final_bar_never_fills():
@@ -59,7 +54,6 @@ def test_an_order_on_the_final_bar_never_fills():
             if context.now == feed._series["AAPL"][-1].timestamp:
                 context.order("AAPL", 10)
 
-    engine = Engine(feed, BuyLate(), starting_cash=1_000)
-    engine.run()
-    assert engine.fills == []
-    assert len(engine.unfilled_orders) == 1
+    result = Engine(feed, BuyLate(), starting_cash=1_000).run()
+    assert result.fills == []
+    assert len(result.unfilled_orders) == 1

@@ -19,6 +19,7 @@ from .broker import Broker
 from .costs import CommissionModel, SlippageModel
 from .feed import BarFeed
 from .portfolio import Portfolio
+from .result import BacktestResult
 from .strategy import Context, Strategy
 from .types import Fill, Order
 
@@ -32,17 +33,19 @@ class Engine:
         starting_cash: float = 100_000.0,
         commission: CommissionModel | None = None,
         slippage: SlippageModel | None = None,
+        periods_per_year: float | None = None,
     ) -> None:
         self.feed = feed
         self.strategy = strategy
         self.starting_cash = starting_cash
+        self.periods_per_year = periods_per_year
         self.portfolio = Portfolio(starting_cash)
         self.broker = Broker(commission, slippage)
         self.context = Context(self.portfolio, self.broker)
         self.equity_curve: list[tuple[datetime, float]] = []
         self.fills: list[Fill] = []
 
-    def run(self) -> list[tuple[datetime, float]]:
+    def run(self) -> BacktestResult:
         ctx = self.context
         self.strategy.initialize(ctx)
         for when, bars in self.feed:
@@ -59,7 +62,13 @@ class Engine:
             self.equity_curve.append((when, self.portfolio.equity(ctx.prices)))
 
         self.strategy.finish(ctx)
-        return self.equity_curve
+        return BacktestResult(
+            equity_curve=self.equity_curve,
+            fills=self.fills,
+            starting_cash=self.starting_cash,
+            unfilled_orders=self.broker.pending,
+            periods_per_year=self.periods_per_year,
+        )
 
     @property
     def unfilled_orders(self) -> list[Order]:
