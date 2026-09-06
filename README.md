@@ -88,6 +88,14 @@ object or a single `Strategy` subclass. `--commission` takes
   drawdown, Calmar, average exposure; trade stats from FIFO-matched round
   trips.
 
+## Examples
+
+```
+python examples/walkthrough.py                 # three strategies, no files needed
+python examples/generate.py AAPL 750 > aapl.csv
+slipstream run examples/sma.py --data AAPL=aapl.csv --slippage bps:2
+```
+
 ## Tests
 
 ```
