@@ -47,6 +47,19 @@ def test_max_drawdown_of_a_monotonic_curve_is_zero():
     assert metrics.max_drawdown([100, 101, 102, 103]) == 0.0
 
 
+def test_worst_drawdown_window_locates_peak_trough_and_recovery():
+    equity = [100, 120, 108, 90, 100, 125, 130]
+    peak, trough, recovered, depth = metrics.worst_drawdown_window(equity)
+    assert (peak, trough) == (1, 3)  # 120 -> 90
+    assert recovered == 5  # first bar back above 120
+    assert depth == pytest.approx(-0.25)
+
+
+def test_worst_drawdown_window_reports_no_recovery():
+    _, _, recovered, _ = metrics.worst_drawdown_window([100, 130, 110, 90])
+    assert recovered is None
+
+
 def test_sortino_ignores_upside_volatility():
     # all-positive returns => no downside => zero by convention
     assert metrics.sortino([0.01, 0.02, 0.015]) == 0.0

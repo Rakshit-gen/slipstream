@@ -59,6 +59,23 @@ class BacktestResult:
         return metrics.max_drawdown(self.equity)
 
     @property
+    def drawdown_curve(self) -> list[tuple[datetime, float]]:
+        depths = metrics.drawdown_series(self.equity)
+        return list(zip(self.timestamps, depths))
+
+    def worst_drawdown(self) -> dict[str, object]:
+        """The deepest drawdown as ``{peak, trough, recovered, depth}``, with
+        dates (``recovered`` is None if equity never regained the peak)."""
+        peak_i, trough_i, recover_i, depth = metrics.worst_drawdown_window(self.equity)
+        stamps = self.timestamps
+        return {
+            "peak": stamps[peak_i] if stamps else None,
+            "trough": stamps[trough_i] if stamps else None,
+            "recovered": stamps[recover_i] if recover_i is not None and stamps else None,
+            "depth": depth,
+        }
+
+    @property
     def calmar(self) -> float:
         return metrics.calmar(self.equity, self.periods_per_year)
 

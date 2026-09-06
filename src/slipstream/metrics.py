@@ -70,6 +70,28 @@ def max_drawdown(equity: list[float]) -> float:
     return min(drawdown_series(equity), default=0.0)
 
 
+def worst_drawdown_window(equity: list[float]) -> tuple[int, int, int | None, float]:
+    """Locate the deepest drawdown: ``(peak_index, trough_index,
+    recovery_index or None, depth)``. Depth is a negative fraction; recovery
+    is the first point back at the old peak, or None if it never got there.
+    """
+    if len(equity) < 2:
+        return (0, 0, 0 if equity else None, 0.0)
+    peak_idx = 0
+    best = (0, 0, 0, 0.0)
+    for i, value in enumerate(equity):
+        if value > equity[peak_idx]:
+            peak_idx = i
+        drop = value / equity[peak_idx] - 1.0
+        if drop < best[3]:
+            recovery = next(
+                (j for j in range(i, len(equity)) if equity[j] >= equity[peak_idx]),
+                None,
+            )
+            best = (peak_idx, i, recovery, drop)
+    return best
+
+
 def sortino(
     rets: list[float],
     risk_free: float = 0.0,

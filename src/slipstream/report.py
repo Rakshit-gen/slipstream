@@ -61,6 +61,16 @@ def format_report(result: BacktestResult, name: str = "strategy") -> str:
     lines.append("")
     for label, value in rows:
         lines.append(f"{label:<16}{value:>16}")
+    worst = result.worst_drawdown()
+    if worst["peak"] is not None and worst["depth"] < 0:
+        recovered = worst["recovered"]
+        tail = f"{recovered:%Y-%m-%d}" if recovered is not None else "not recovered"
+        lines.append("")
+        lines.append(
+            f"worst drawdown {_pct(worst['depth'])}: "
+            f"{worst['peak']:%Y-%m-%d} -> {worst['trough']:%Y-%m-%d} -> {tail}"
+        )
+
     if result.equity:
         lines += ["", "equity", sparkline(result.equity)]
     return "\n".join(lines)
